@@ -4,7 +4,7 @@ use crate::file::{ File, FileError };
 pub fn open(path: impl AsRef<Path>) -> Result<File, FileError> {
     let path = path.as_ref();
 
-    let content = fs::read(path).map_err(|source| FileError::Read {
+    let contents = fs::read(path).map_err(|source| FileError::Read {
         path: path.display().to_string(),
         source,
     })?;
@@ -17,6 +17,6 @@ pub fn open(path: impl AsRef<Path>) -> Result<File, FileError> {
 
     Ok(File {
         folder_path,
-        content,
+        contents,
     })
 }

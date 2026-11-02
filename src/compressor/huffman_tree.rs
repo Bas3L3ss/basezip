@@ -13,8 +13,8 @@ pub enum NodeKind {
         symbol: u16,
     },
     Internal {
-        left: Option<Box<Node>>,
-        right: Option<Box<Node>>,
+        left: Box<Node>,
+        right: Box<Node>,
     },
 }
 
@@ -23,24 +23,20 @@ impl Node {
         Self { kind, freq }
     }
 
-    /// Placeholder tree returned for empty input.
-    fn empty() -> Self {
-        Self::new(NodeKind::Internal { left: None, right: None }, 0)
-    }
-
     /// Joins two nodes under a new internal node whose frequency is their sum.
     fn merge(left: Node, right: Node) -> Self {
-        let freq = left.freq + right.freq;
+        let freq = left.freq.checked_add(right.freq).expect("frequency overflow");
         let kind = NodeKind::Internal {
-            left: Some(Box::new(left)),
-            right: Some(Box::new(right)),
+            left: Box::new(left),
+            right: Box::new(right),
         };
         Self::new(kind, freq)
     }
 
     /// One leaf node per distinct byte in `contents`, with its frequency.
     fn leaves(contents: &[u8]) -> Vec<Node> {
-        let mut freq_map: HashMap<u8, usize> = HashMap::new();
+        let mut freq_map: HashMap<u8, usize> = HashMap::with_capacity(256); // todo: let mut frequencies = [0usize; 256];
+
         for &byte in contents {
             *freq_map.entry(byte).or_insert(0) += 1;
         }
@@ -52,15 +48,15 @@ impl Node {
     }
 
     /// Default entry point. Point this at whichever implementation wins the benchmark.
-    pub fn build(contents: &[u8]) -> Self {
+    pub fn build(contents: &[u8]) -> Option<Self> {
         Self::build_with_vec(contents)
     }
 
     /// Builds the tree with a `Vec` kept sorted in descending order (smallest at the end).
-    pub fn build_with_vec(contents: &[u8]) -> Self {
+    pub fn build_with_vec(contents: &[u8]) -> Option<Self> {
         let mut nodes = Self::leaves(contents);
         if nodes.is_empty() {
-            return Self::empty();
+            return None;
         }
 
         nodes.sort_by_key(|n| Reverse(n.freq));
@@ -72,14 +68,14 @@ impl Node {
             nodes.sort_by_key(|n| Reverse(n.freq));
         }
 
-        nodes.pop().expect("non-empty")
+        Some(nodes.pop().expect("non-empty"))
     }
 
     /// Builds the tree with a min-heap keyed on frequency.
-    pub fn build_with_heap(contents: &[u8]) -> Self {
+    pub fn build_with_heap(contents: &[u8]) -> Option<Self> {
         let mut nodes = Self::leaves(contents);
         if nodes.is_empty() {
-            return Self::empty();
+            return None;
         }
 
         nodes.sort_by_key(|n| Reverse(n.freq));
@@ -91,7 +87,7 @@ impl Node {
             nodes.sort_by_key(|n| Reverse(n.freq));
         }
 
-        nodes.pop().expect("non-empty")
+        Some(nodes.pop().expect("non-empty"))
     }
 }
 
@@ -104,8 +100,8 @@ mod tests {
             NodeKind::Leaf { .. } => node.freq * depth,
 
             NodeKind::Internal { left, right } => {
-                weighted_path_length(left.as_ref().unwrap(), depth + 1) +
-                    weighted_path_length(right.as_ref().unwrap(), depth + 1)
+                weighted_path_length(left.as_ref(), depth + 1) +
+                    weighted_path_length(right.as_ref(), depth + 1)
             }
         }
     }
@@ -117,8 +113,8 @@ mod tests {
                 node.freq
             }
             NodeKind::Internal { left, right } => {
-                let left = left.as_ref().expect("internal node missing left child");
-                let right = right.as_ref().expect("internal node missing right child");
+                let left = left.as_ref();
+                let right = right.as_ref();
 
                 let left_freq = assert_valid_tree(left);
                 let right_freq = assert_valid_tree(right);
@@ -138,8 +134,8 @@ mod tests {
         match &node.kind {
             NodeKind::Leaf { symbol } => symbols.push(*symbol),
             NodeKind::Internal { left, right } => {
-                collect_symbols(left.as_ref().unwrap(), symbols);
-                collect_symbols(right.as_ref().unwrap(), symbols);
+                collect_symbols(left.as_ref(), symbols);
+                collect_symbols(right.as_ref(), symbols);
             }
         }
     }
@@ -158,7 +154,7 @@ mod tests {
             contents.extend(std::iter::repeat(symbol).take(frequency));
         }
 
-        let tree = Node::build(&contents);
+        let tree = Node::build(&contents).unwrap();
 
         assert_eq!(tree.freq, 123);
 
@@ -170,7 +166,7 @@ mod tests {
     #[test]
     fn builds_tree_with_two_symbols() {
         let contents = b"AABB";
-        let tree = Node::build(contents);
+        let tree = Node::build(contents).unwrap();
 
         assert_eq!(tree.freq, contents.len());
         assert_valid_tree(&tree);
@@ -185,7 +181,7 @@ mod tests {
     #[test]
     fn builds_tree_with_multiple_symbols() {
         let contents = b"AAAABBCCD";
-        let tree = Node::build(contents);
+        let tree = Node::build(contents).unwrap();
 
         assert_eq!(tree.freq, contents.len());
         assert_valid_tree(&tree);
@@ -200,7 +196,7 @@ mod tests {
     #[test]
     fn builds_tree_with_repeated_internal_merges() {
         let contents = b"AAAAAAAAAABBBBBCCCCDDDEEFG";
-        let tree = Node::build(contents);
+        let tree = Node::build(contents).unwrap();
 
         assert_eq!(tree.freq, contents.len());
         assert_valid_tree(&tree);
@@ -215,7 +211,7 @@ mod tests {
     #[test]
     fn builds_tree_with_equal_frequencies() {
         let contents = b"AABBCCDDEEFFGGHH";
-        let tree = Node::build(contents);
+        let tree = Node::build(contents).unwrap();
 
         assert_eq!(tree.freq, contents.len());
         assert_valid_tree(&tree);
@@ -230,7 +226,7 @@ mod tests {
     #[test]
     fn builds_tree_with_skewed_frequencies() {
         let contents = b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB";
-        let tree = Node::build(contents);
+        let tree = Node::build(contents).unwrap();
 
         assert_eq!(tree.freq, contents.len());
         assert_valid_tree(&tree);

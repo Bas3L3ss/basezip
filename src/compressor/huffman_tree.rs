@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 use std::cmp::{ Reverse };
 
-#[derive(Debug, Clone)]
+use crate::compressor::min_heap::MinHeap;
+
+#[derive(Debug)]
 pub struct Node {
     pub freq: usize,
     pub kind: NodeKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum NodeKind {
     Leaf {
         symbol: u16,
@@ -49,7 +51,7 @@ impl Node {
 
     /// Default entry point. Point this at whichever implementation wins the benchmark.
     pub fn build(contents: &[u8]) -> Option<Self> {
-        Self::build_with_vec(contents)
+        Self::build_with_heap(contents)
     }
 
     /// Builds the tree with a `Vec` kept sorted in descending order (smallest at the end).
@@ -73,21 +75,22 @@ impl Node {
 
     /// Builds the tree with a min-heap keyed on frequency.
     pub fn build_with_heap(contents: &[u8]) -> Option<Self> {
-        let mut nodes = Self::leaves(contents);
+        let nodes = Self::leaves(contents);
         if nodes.is_empty() {
             return None;
         }
-
-        nodes.sort_by_key(|n| Reverse(n.freq));
-
-        while nodes.len() > 1 {
-            let left = nodes.pop().expect("len > 1");
-            let right = nodes.pop().expect("len > 1");
-            nodes.push(Self::merge(left, right));
-            nodes.sort_by_key(|n| Reverse(n.freq));
+        let mut min_heap = MinHeap::default();
+        for node in nodes {
+            min_heap.insert(node);
         }
 
-        Some(nodes.pop().expect("non-empty"))
+        while min_heap.inner.len() > 1 {
+            let left = min_heap.pop_min().expect("len > 1");
+            let right = min_heap.pop_min().expect("len > 1");
+            min_heap.insert(Self::merge(left, right));
+        }
+
+        Some(min_heap.pop_min().expect("non-empty"))
     }
 }
 

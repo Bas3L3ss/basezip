@@ -9,3 +9,7 @@ thiserror = "2.0.21"
 
 [dev-dependencies]
 criterion = "0.8.2"
+
+[[bench]]
+name = "huffman"
+harness = false

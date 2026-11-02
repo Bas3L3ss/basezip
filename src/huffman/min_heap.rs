@@ -1,4 +1,4 @@
-use crate::compressor::huffman_tree::Node;
+use super::huffman_tree::Node;
 
 #[derive(Debug, Default)]
 pub struct MinHeap {

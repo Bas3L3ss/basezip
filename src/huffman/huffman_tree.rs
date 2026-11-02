@@ -1,6 +1,6 @@
 use std::cmp::{ Reverse };
 
-use crate::compressor::min_heap::MinHeap;
+use super::min_heap::MinHeap;
 
 impl PartialEq for Node {
     fn eq(&self, other: &Self) -> bool {

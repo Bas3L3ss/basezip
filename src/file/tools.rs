@@ -15,6 +15,10 @@ pub fn open(path: impl AsRef<Path>) -> Result<File, FileError> {
         .to_string_lossy()
         .into_owned();
 
+    if contents.len() == 0 {
+        return Err(FileError::EmptyFile);
+    }
+
     Ok(File {
         folder_path,
         contents,

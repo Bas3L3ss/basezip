@@ -40,8 +40,34 @@ pub enum NodeKind {
 }
 
 impl Node {
-    pub fn frequency(&self) -> usize {
-        self.freq
+    pub fn build_code_table(&self) -> [Option<Vec<bool>>; 256] {
+        fn dfs(cur_node: &Node, out: &mut [Option<Vec<bool>>; 256], buf: &mut Vec<bool>) {
+            match &cur_node.kind {
+                NodeKind::Internal { left, right } => {
+                    buf.push(false);
+                    dfs(left, out, buf);
+                    buf.pop();
+
+                    buf.push(true);
+                    dfs(right, out, buf);
+                    buf.pop();
+                }
+                NodeKind::Leaf { symbol } => {
+                    out[*symbol as usize] = Some(buf.clone());
+                }
+            }
+        }
+
+        let mut out: [Option<Vec<bool>>; 256] = std::array::from_fn(|_| None);
+        let mut buf = Vec::new();
+
+        if let NodeKind::Leaf { symbol } = &self.kind {
+            out[*symbol as usize] = Some(vec![false]);
+            return out;
+        }
+
+        dfs(self, &mut out, &mut buf);
+        out
     }
 
     pub fn new(kind: NodeKind, freq: usize) -> Self {
@@ -116,6 +142,10 @@ impl Node {
         }
 
         Some(min_heap.pop_min().expect("non-empty"))
+    }
+
+    pub fn frequency(&self) -> usize {
+        self.freq
     }
 }
 

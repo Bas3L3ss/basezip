@@ -1,12 +1,31 @@
-use std::collections::HashMap;
 use std::cmp::{ Reverse };
 
 use crate::compressor::min_heap::MinHeap;
 
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.freq == other.freq
+    }
+}
+
+impl Eq for Node {}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.freq.cmp(&other.freq)
+    }
+}
+
 #[derive(Debug)]
 pub struct Node {
-    pub freq: usize,
-    pub kind: NodeKind,
+    freq: usize,
+    kind: NodeKind,
 }
 
 #[derive(Debug)]
@@ -21,6 +40,10 @@ pub enum NodeKind {
 }
 
 impl Node {
+    pub fn frequency(&self) -> usize {
+        self.freq
+    }
+
     pub fn new(kind: NodeKind, freq: usize) -> Self {
         Self { kind, freq }
     }
@@ -37,14 +60,16 @@ impl Node {
 
     /// One leaf node per distinct byte in `contents`, with its frequency.
     fn leaves(contents: &[u8]) -> Vec<Node> {
-        let mut freq_map: HashMap<u8, usize> = HashMap::with_capacity(256); // todo: let mut frequencies = [0usize; 256];
+        let mut freq_map = [0usize; 256];
 
         for &byte in contents {
-            *freq_map.entry(byte).or_insert(0) += 1;
+            freq_map[byte as usize] += 1;
         }
 
         freq_map
             .into_iter()
+            .enumerate()
+            .filter(|(_, freq)| *freq != 0)
             .map(|(symbol, freq)| Node::new(NodeKind::Leaf { symbol: symbol as u16 }, freq))
             .collect()
     }

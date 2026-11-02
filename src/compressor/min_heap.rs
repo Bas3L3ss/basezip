@@ -41,7 +41,7 @@ impl MinHeap {
         while current > 0 {
             let parent = self.parent(current);
 
-            if self.inner[parent].freq <= self.inner[current].freq {
+            if self.inner[parent] <= self.inner[current] {
                 break;
             }
 
@@ -61,12 +61,12 @@ impl MinHeap {
             };
 
             let change = if let Some(right_node) = self.inner.get(right) {
-                if left_node.freq < right_node.freq { left } else { right }
+                if left_node < right_node { left } else { right }
             } else {
                 left
             };
 
-            if self.inner[current].freq <= self.inner[change].freq {
+            if self.inner[current] <= self.inner[change] {
                 break;
             }
 

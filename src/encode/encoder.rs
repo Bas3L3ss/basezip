@@ -1,25 +1,18 @@
-use crate::huffman::Node;
+use crate::{ encode::Metadata, huffman::Node };
 use super::EncodedData;
 
 pub struct Encoder;
 
 impl Encoder {
     pub fn encode(input: &[u8]) -> EncodedData {
-        // 1. Calculate symbol frequencies.
-        // 2. Build Huffman tree.
-        // 3. Generate Huffman code lengths.
-        // 4. Generate canonical Huffman codes.
-        // 5. Encode input into bytes.
-        // 6. Build metadata.
+        let tree = Node::build(input).expect("Must not be empty");
 
-        todo!()
-    }
+        let code_table = tree.build_code_table();
 
-    fn calculate_frequencies(input: &[u8]) -> [usize; 256] {
-        todo!()
-    }
+        let encoded_input = EncodedData::encode_bytes(input, &code_table);
 
-    fn build_tree(frequencies: &[usize; 256]) -> Option<Node> {
+        let metadata = Metadata::new(input.len() as u64, code_table);
+
         todo!()
     }
 

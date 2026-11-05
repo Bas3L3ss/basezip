@@ -39,34 +39,46 @@ pub enum NodeKind {
     },
 }
 
+pub type CodeTable = [Option<(u32, u8)>; 256];
+
 impl Node {
-    pub fn build_code_table(&self) -> [Option<Vec<bool>>; 256] {
-        fn dfs(cur_node: &Node, out: &mut [Option<Vec<bool>>; 256], buf: &mut Vec<bool>) {
+    pub fn build_code_table(&self) -> CodeTable {
+        fn dfs(cur_node: &Node, out: &mut CodeTable, code: &mut (u32, u8)) {
             match &cur_node.kind {
                 NodeKind::Internal { left, right } => {
-                    buf.push(false);
-                    dfs(left, out, buf);
-                    buf.pop();
+                    // Left: append 0
+                    code.0 <<= 1;
+                    code.1 += 1;
+                    dfs(left, out, code);
 
-                    buf.push(true);
-                    dfs(right, out, buf);
-                    buf.pop();
+                    // Restore
+                    code.0 >>= 1;
+                    code.1 -= 1;
+
+                    // Right: append 1
+                    code.0 = (code.0 << 1) | 1;
+                    code.1 += 1;
+                    dfs(right, out, code);
+
+                    // Restore
+                    code.0 >>= 1;
+                    code.1 -= 1;
                 }
                 NodeKind::Leaf { symbol } => {
-                    out[*symbol as usize] = Some(buf.clone());
+                    out[*symbol as usize] = Some(*code);
                 }
             }
         }
 
-        let mut out: [Option<Vec<bool>>; 256] = std::array::from_fn(|_| None);
-        let mut buf = Vec::new();
+        let mut out: CodeTable = std::array::from_fn(|_| None);
+        let mut code = (0, 0);
 
         if let NodeKind::Leaf { symbol } = &self.kind {
-            out[*symbol as usize] = Some(vec![false]);
+            out[*symbol as usize] = Some((0, 1));
             return out;
         }
 
-        dfs(self, &mut out, &mut buf);
+        dfs(self, &mut out, &mut code);
         out
     }
 

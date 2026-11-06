@@ -1,24 +1,24 @@
-use crate::{ decode::DecompressError, huffman_tree::CodeTable };
+use crate::{ decode::DecompressError, huffman_pointer::CodeTable };
 
 #[derive(Debug, PartialEq)]
-pub struct DecodeNode {
-    pub kind: DecodeNodeKind,
+pub struct PointerDecodeNode {
+    pub kind: PointerDecodeNodeKind,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum DecodeNodeKind {
+pub enum PointerDecodeNodeKind {
     Leaf {
         symbol: u16,
     },
     Internal {
-        left: Option<Box<DecodeNode>>,
-        right: Option<Box<DecodeNode>>,
+        left: Option<Box<PointerDecodeNode>>,
+        right: Option<Box<PointerDecodeNode>>,
     },
 }
 
-impl DecodeNode {
+impl PointerDecodeNode {
     pub fn build_decode_tree(code_table: CodeTable) -> Result<Self, DecompressError> {
-        let mut root = Self::new(DecodeNodeKind::Internal {
+        let mut root = Self::new(PointerDecodeNodeKind::Internal {
             left: None,
             right: None,
         });
@@ -38,10 +38,10 @@ impl DecodeNode {
                 let bit = (code >> bit_index) & 1;
 
                 let (left, right) = match &mut current.kind {
-                    DecodeNodeKind::Leaf { .. } => {
+                    PointerDecodeNodeKind::Leaf { .. } => {
                         return Err(DecompressError::UnexpectedLeaf);
                     }
-                    DecodeNodeKind::Internal { left, right } => (left, right),
+                    PointerDecodeNodeKind::Internal { left, right } => (left, right),
                 };
 
                 let child = if bit == 0 { left } else { right };
@@ -49,7 +49,7 @@ impl DecodeNode {
                 current = child
                     .get_or_insert_with(|| {
                         Box::new(
-                            Self::new(DecodeNodeKind::Internal {
+                            Self::new(PointerDecodeNodeKind::Internal {
                                 left: None,
                                 right: None,
                             })
@@ -59,8 +59,11 @@ impl DecodeNode {
             }
 
             match &current.kind {
-                DecodeNodeKind::Internal { left, right } if left.is_none() && right.is_none() => {
-                    current.kind = DecodeNodeKind::Leaf {
+                PointerDecodeNodeKind::Internal { left, right } if
+                    left.is_none() &&
+                    right.is_none()
+                => {
+                    current.kind = PointerDecodeNodeKind::Leaf {
                         symbol: symbol as u16,
                     };
                 }
@@ -73,7 +76,7 @@ impl DecodeNode {
         Ok(root)
     }
 
-    pub fn new(kind: DecodeNodeKind) -> Self {
+    pub fn new(kind: PointerDecodeNodeKind) -> Self {
         Self { kind }
     }
 }

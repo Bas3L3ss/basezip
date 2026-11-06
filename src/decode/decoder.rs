@@ -2,25 +2,25 @@ use super::DecompressError;
 use crate::{
     encode::{ HEADER_LENGTH, Header },
     huffman_arena::{ ArenaDecodeNodeKind, DecodeArena },
-    huffman_tree::{ DecodeNode, DecodeNodeKind },
+    huffman_pointer::{ PointerDecodeNode, PointerDecodeNodeKind },
 };
 
 pub struct Decoder;
 
 impl Decoder {
-    pub fn decode(input: &[u8]) -> Result<String, DecompressError> {
+    pub fn decode(input: &[u8]) -> Result<Vec<u8>, DecompressError> {
         let (input_slice, header) = Decoder::prep(input)?;
 
         if input_slice.is_empty() {
             eprintln!("File is empty, there's nothing to decompress");
             if header.original_size == 0 {
-                return Ok(String::new());
+                return Ok(vec![]);
             }
 
             return Err(DecompressError::UnexpectedTraversal);
         }
 
-        Self::with_tree(input_slice, header)
+        Self::with_arena_tree(input_slice, header)
     }
 
     pub fn prep(input: &[u8]) -> Result<(&[u8], Header), DecompressError> {
@@ -36,8 +36,11 @@ impl Decoder {
         Ok((input_slice, header))
     }
 
-    pub fn with_tree(input_slice: &[u8], header: Header) -> Result<String, DecompressError> {
-        let tree = DecodeNode::build_decode_tree(header.code_table)?;
+    pub fn with_pointer_tree(
+        input_slice: &[u8],
+        header: Header
+    ) -> Result<Vec<u8>, DecompressError> {
+        let tree = PointerDecodeNode::build_decode_tree(header.code_table)?;
 
         let mut out: Vec<u8> = Vec::with_capacity(header.original_size as usize);
         let mut current = &tree;
@@ -47,7 +50,7 @@ impl Decoder {
                 let bit = (byte >> cur) & 1;
 
                 let child = match &current.kind {
-                    DecodeNodeKind::Internal { left, right } => {
+                    PointerDecodeNodeKind::Internal { left, right } => {
                         if bit == 0 { left.as_deref() } else { right.as_deref() }
                     }
                     _ => {
@@ -63,7 +66,7 @@ impl Decoder {
                 };
 
                 match &child.kind {
-                    DecodeNodeKind::Leaf { symbol } => {
+                    PointerDecodeNodeKind::Leaf { symbol } => {
                         out.push(*symbol as u8);
                         current = &tree;
 
@@ -71,7 +74,7 @@ impl Decoder {
                             break 'bytes;
                         }
                     }
-                    DecodeNodeKind::Internal { .. } => {
+                    PointerDecodeNodeKind::Internal { .. } => {
                         current = child;
                     }
                 }
@@ -83,10 +86,10 @@ impl Decoder {
             );
         }
 
-        Ok(String::from_utf8(out).map_err(|_| DecompressError::FailedToParseString)?)
+        Ok(out)
     }
 
-    pub fn with_arena(input_slice: &[u8], header: Header) -> Result<String, DecompressError> {
+    pub fn with_arena_tree(input_slice: &[u8], header: Header) -> Result<Vec<u8>, DecompressError> {
         let tree = DecodeArena::build_decode_tree(header.code_table)?;
 
         let arena = tree.arena;
@@ -136,6 +139,6 @@ impl Decoder {
             );
         }
 
-        Ok(String::from_utf8(out).map_err(|_| DecompressError::FailedToParseString)?)
+        Ok(out)
     }
 }

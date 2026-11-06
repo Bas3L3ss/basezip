@@ -1,6 +1,8 @@
 use std::hint::black_box;
+use basezip::encode::Encoder;
 use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion };
-use basezip::huffman_tree::encode_node::Node;
+use basezip::huffman_pointer::encode_node::Node;
+use basezip::decode::Decoder;
 
 fn generate_uniform(size: usize) -> Vec<u8> {
     (0..size).map(|i| (i % 256) as u8).collect()
@@ -74,5 +76,49 @@ fn benchmark_huffman(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, benchmark_huffman);
+fn benchmark_decode(c: &mut Criterion) {
+    let mut group = c.benchmark_group("decode_arena_vs_tree");
+
+    let sizes = [1024 * 1024, 4 * 1024 * 1024, 16 * 1024 * 1024];
+
+    for size in sizes {
+        let datasets = [
+            ("uniform", generate_uniform(size)),
+            ("skewed", generate_skewed(size)),
+            ("random_like", generate_random_like(size)),
+        ];
+
+        for (distribution, data) in datasets {
+            // Compression and header parsing are excluded from measurement.
+
+            let compressed = Encoder::encode(&data).to_bytes();
+
+            let (input_slice, header) = Decoder::prep(&compressed).unwrap();
+
+            group.bench_with_input(
+                BenchmarkId::new("pointer_tree", format!("{distribution}_{size}")),
+                &input_slice,
+                |b, input| {
+                    b.iter(|| {
+                        Decoder::with_pointer_tree(black_box(input), black_box(header)).unwrap()
+                    });
+                }
+            );
+
+            group.bench_with_input(
+                BenchmarkId::new("arena_tree", format!("{distribution}_{size}")),
+                &input_slice,
+                |b, input| {
+                    b.iter(|| {
+                        Decoder::with_arena_tree(black_box(input), black_box(header)).unwrap()
+                    });
+                }
+            );
+        }
+    }
+
+    group.finish();
+}
+
+criterion_group!(benches, benchmark_huffman, benchmark_decode);
 criterion_main!(benches);

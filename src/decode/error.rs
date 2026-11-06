@@ -10,5 +10,4 @@ pub enum DecompressError {
     },
     #[error("Reached an invalid state of the tree")] UnexpectedLeaf,
     #[error("Reached an invalid state while traversing")] UnexpectedTraversal,
-    #[error("Failed to parse bytes to string")] FailedToParseString,
 }

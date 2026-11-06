@@ -1,4 +1,4 @@
-use crate::{ decode::DecompressError, huffman_tree::CodeTable };
+use crate::{ decode::DecompressError, huffman_pointer::CodeTable };
 
 #[derive(Debug, PartialEq)]
 pub struct DecodeArena {

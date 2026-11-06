@@ -18,29 +18,26 @@ pub enum DecodeNodeKind {
 
 impl DecodeNode {
     pub fn build_decode_tree(code_table: CodeTable) -> Result<Self, DecompressError> {
-        fn dfs(
-            cur_node: &mut DecodeNode,
-            code_byte: u32,
-            symbol: u16,
-            current: isize
-        ) -> Result<(), DecompressError> {
-            if current < 0 {
-                match &cur_node.kind {
-                    DecodeNodeKind::Internal { left, right } if
-                        left.is_none() &&
-                        right.is_none()
-                    => {
-                        cur_node.kind = DecodeNodeKind::Leaf { symbol };
-                        Ok(())
-                    }
-                    _ => {
-                        return Err(DecompressError::UnexpectedLeaf);
-                    }
-                }
-            } else {
-                let bit = ((code_byte >> current) & 1) as u8;
+        let mut root = Self::new(DecodeNodeKind::Internal {
+            left: None,
+            right: None,
+        });
 
-                let (left, right) = match &mut cur_node.kind {
+        for (symbol, entry) in code_table.iter().enumerate() {
+            let Some((code, length)) = entry else {
+                continue;
+            };
+
+            if *length == 0 || *length > 32 {
+                return Err(DecompressError::InvalidCodeLength);
+            }
+
+            let mut current = &mut root;
+
+            for bit_index in (0..*length).rev() {
+                let bit = (code >> bit_index) & 1;
+
+                let (left, right) = match &mut current.kind {
                     DecodeNodeKind::Leaf { .. } => {
                         return Err(DecompressError::UnexpectedLeaf);
                     }
@@ -49,32 +46,30 @@ impl DecodeNode {
 
                 let child = if bit == 0 { left } else { right };
 
-                if child.is_none() {
-                    *child = Some(
+                current = child
+                    .get_or_insert_with(|| {
                         Box::new(
-                            DecodeNode::new(DecodeNodeKind::Internal {
+                            Self::new(DecodeNodeKind::Internal {
                                 left: None,
                                 right: None,
                             })
                         )
-                    );
+                    })
+                    .as_mut();
+            }
+
+            match &current.kind {
+                DecodeNodeKind::Internal { left, right } if left.is_none() && right.is_none() => {
+                    current.kind = DecodeNodeKind::Leaf {
+                        symbol: symbol as u16,
+                    };
                 }
-
-                dfs(
-                    child.as_mut().expect("Unreachable as child is created above"),
-                    code_byte,
-                    symbol,
-                    current - 1
-                )
+                _ => {
+                    return Err(DecompressError::UnexpectedLeaf);
+                }
             }
         }
 
-        let mut root = Self::new(DecodeNodeKind::Internal { left: None, right: None });
-        for (symbol, entry) in code_table.iter().enumerate() {
-            if let Some(entry) = entry {
-                dfs(&mut root, entry.0, symbol as u16, (entry.1 - 1) as isize)?;
-            }
-        }
         Ok(root)
     }
 

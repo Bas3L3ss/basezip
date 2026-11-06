@@ -40,17 +40,17 @@ impl Header {
         out
     }
     pub fn deserialize(bytes: &[u8]) -> Result<Self, DecompressError> {
-        if bytes.len() < HEADER_LENGTH {
+        if bytes.len() != HEADER_LENGTH {
             return Err(DecompressError::IncorrectHeaderLength);
         }
 
-        let magic_word = &bytes[..MAGIC_WORD.len()];
+        let mut start = MAGIC_WORD.len();
+
+        let magic_word = &bytes[..start];
 
         if magic_word != MAGIC_WORD {
             return Err(DecompressError::InvalidMagicWord);
         }
-
-        let mut start = MAGIC_WORD.len();
 
         let original_size = u64::from_le_bytes(
             bytes[start..start + 8]

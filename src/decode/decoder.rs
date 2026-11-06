@@ -26,15 +26,14 @@ impl Decoder {
 
         // decode input
 
-        let mut out: Vec<u8> = vec![];
-
-        let mut last_position = &tree;
+        let mut out: Vec<u8> = Vec::with_capacity(header.original_size as usize);
+        let mut current = &tree;
 
         'bytes: for byte in input_slice {
             for cur in (0..8).rev() {
                 let bit = (byte >> cur) & 1;
 
-                let child = match &last_position.kind {
+                let child = match &current.kind {
                     DecodeNodeKind::Internal { left, right } => {
                         if bit == 0 { left.as_deref() } else { right.as_deref() }
                     }
@@ -53,14 +52,14 @@ impl Decoder {
                 match &child.kind {
                     DecodeNodeKind::Leaf { symbol } => {
                         out.push(*symbol as u8);
-                        last_position = &tree;
+                        current = &tree;
 
                         if (out.len() as u64) == header.original_size {
                             break 'bytes;
                         }
                     }
                     DecodeNodeKind::Internal { .. } => {
-                        last_position = child;
+                        current = child;
                     }
                 }
             }
@@ -71,11 +70,6 @@ impl Decoder {
             );
         }
 
-        Ok(
-            std::str
-                ::from_utf8(&out)
-                .map_err(|_| DecompressError::FailedToParseString)?
-                .to_string()
-        )
+        Ok(String::from_utf8(out).map_err(|_| DecompressError::FailedToParseString)?)
     }
 }

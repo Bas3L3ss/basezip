@@ -1,4 +1,4 @@
-use crate::{ encode::Header, huffman::Node };
+use crate::{ encode::Header, huffman_tree::Node };
 use super::EncodedData;
 
 pub struct Encoder;

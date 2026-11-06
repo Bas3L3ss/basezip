@@ -1,4 +1,4 @@
-use crate::{ decode::DecompressError, huffman::CodeTable };
+use crate::{ decode::DecompressError, huffman_tree::CodeTable };
 
 const CODETABLE_LENGTH: usize = 256;
 const CODE_LENGTH_BYTES: usize = 1;
@@ -7,7 +7,7 @@ const MAGIC_WORD: &[u8; 7] = b"BASEZIP";
 pub const HEADER_LENGTH: usize =
     MAGIC_WORD.len() + 8 + CODETABLE_LENGTH * (CODE_LENGTH_BYTES + CODE_BYTES);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Header {
     pub original_size: u64,
     pub code_table: CodeTable,

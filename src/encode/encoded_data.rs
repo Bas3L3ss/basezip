@@ -1,4 +1,4 @@
-use crate::huffman::CodeTable;
+use crate::huffman_tree::CodeTable;
 
 use super::Header;
 

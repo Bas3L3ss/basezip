@@ -1,4 +1,4 @@
-use super::encode_tree::Node;
+use super::encode_node::Node;
 
 #[derive(Debug, Default)]
 pub struct MinHeap {

@@ -1,6 +1,6 @@
 use std::hint::black_box;
 use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion };
-use basezip::huffman::encode_tree::Node;
+use basezip::huffman_tree::encode_node::Node;
 
 fn generate_uniform(size: usize) -> Vec<u8> {
     (0..size).map(|i| (i % 256) as u8).collect()

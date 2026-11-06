@@ -1,4 +1,4 @@
-use std::{ fs, path::Path };
+use std::{ fs, path::{ Path, PathBuf } };
 use crate::file::{ File, FileError };
 
 pub fn open(path: impl AsRef<Path>) -> Result<File, FileError> {
@@ -19,7 +19,7 @@ pub fn open(path: impl AsRef<Path>) -> Result<File, FileError> {
     })
 }
 
-pub fn write(path: impl AsRef<Path>, contents: &[u8]) -> Result<(), FileError> {
+pub fn write<T: AsRef<[u8]>>(path: impl AsRef<Path>, contents: T) -> Result<(), FileError> {
     let path = path.as_ref();
 
     std::fs
@@ -27,4 +27,12 @@ pub fn write(path: impl AsRef<Path>, contents: &[u8]) -> Result<(), FileError> {
         .map_err(|source| FileError::Write { path: path.display().to_string(), source })?;
 
     Ok(())
+}
+
+pub fn remove_bzip_extension(path: impl AsRef<Path>) -> PathBuf {
+    let path = path.as_ref();
+    match path.extension() {
+        Some(ext) if ext == "bzip" => { path.with_extension("") }
+        _ => path.to_path_buf(),
+    }
 }

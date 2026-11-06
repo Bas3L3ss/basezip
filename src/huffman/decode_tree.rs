@@ -2,7 +2,7 @@ use crate::huffman::CodeTable;
 
 #[derive(Debug, PartialEq)]
 pub struct DecodeNode {
-    kind: DecodeNodeKind,
+    pub kind: DecodeNodeKind,
 }
 
 #[derive(Debug, PartialEq)]
@@ -18,9 +18,7 @@ pub enum DecodeNodeKind {
 
 impl DecodeNode {
     pub fn build_decode_tree(code_table: CodeTable) -> Self {
-        fn dfs(cur_node: &mut DecodeNode, entry: (u32, u8), symbol: u16, current: isize) {
-            let (code_byte, _) = entry;
-
+        fn dfs(cur_node: &mut DecodeNode, code_byte: u32, symbol: u16, current: isize) {
             if current < 0 {
                 match &cur_node.kind {
                     DecodeNodeKind::Internal { left, right } if
@@ -55,14 +53,14 @@ impl DecodeNode {
                     );
                 }
 
-                dfs(child.as_mut().unwrap(), entry, symbol, current - 1) // TODO: Handle unwrap
+                dfs(child.as_mut().unwrap(), code_byte, symbol, current - 1) // TODO: Handle unwrap
             }
         }
 
         let mut root = Self::new(DecodeNodeKind::Internal { left: None, right: None });
         for (symbol, entry) in code_table.iter().enumerate() {
             if let Some(entry) = entry {
-                dfs(&mut root, *entry, symbol as u16, entry.1 as isize);
+                dfs(&mut root, entry.0, symbol as u16, (entry.1 - 1) as isize);
             }
         }
         root

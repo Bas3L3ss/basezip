@@ -39,7 +39,7 @@ pub enum NodeKind {
     },
 }
 
-pub type CodeTable = [Option<(u32, u8)>; 256];
+pub type CodeTable = [Option<(u32, u8)>; 256]; // (Code bytes, Code length)
 
 impl Node {
     pub fn build_code_table(&self) -> CodeTable {

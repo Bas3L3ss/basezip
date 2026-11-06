@@ -1,5 +1,9 @@
 use crate::huffman::CodeTable;
 
+const CODETABLE_LENGTH: usize = 256;
+const CODE_LENGTH_BYTES: usize = 1;
+const CODE_BYTES: usize = 4;
+
 #[derive(Debug)]
 pub struct Metadata {
     pub original_size: u64,
@@ -12,12 +16,11 @@ impl Metadata {
     }
 
     pub fn serialize(&self) -> Vec<u8> {
-        let mut out = Vec::with_capacity(8 + 256 * 5);
+        let mut out = Vec::with_capacity(8 + CODETABLE_LENGTH * (CODE_LENGTH_BYTES + CODE_BYTES));
 
         // Original file size
         out.extend_from_slice(&self.original_size.to_le_bytes());
 
-        // Huffman code table
         for entry in &self.code_table {
             match entry {
                 Some((code, len)) => {

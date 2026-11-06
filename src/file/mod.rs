@@ -6,6 +6,6 @@ pub use tools::*;
 
 #[derive(Debug)]
 pub struct File {
-    pub folder_path: String,
+    pub path: String,
     pub contents: Vec<u8>,
 }

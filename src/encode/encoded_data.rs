@@ -10,11 +10,13 @@ pub struct EncodedData {
 
 impl EncodedData {
     pub fn to_bytes(&self) -> Vec<u8> {
-        // 1. Serialize metadata.
-        // 2. Append metadata to output.
-        // 3. Append compressed data.
-        // 4. Return complete file contents.
-        todo!()
+        let mut out = Vec::new();
+
+        out.extend(self.metadata.serialize());
+
+        out.extend(self.data.clone());
+
+        out
     }
 
     pub fn encode_bytes(original: &[u8], code_table: &CodeTable) -> Vec<u8> {

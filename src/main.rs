@@ -1,4 +1,8 @@
-use basezip::{ Cli, Commands, commands::{ compress::compress, error::Error } };
+use basezip::{
+    Cli,
+    Commands,
+    commands::{ compress::compress, decompress::decompress, error::Error },
+};
 use clap::Parser;
 
 fn main() {
@@ -6,14 +10,22 @@ fn main() {
         Commands::List { path } => { todo!() }
         Commands::Compress { path } => {
             match compress(&path) {
-                Ok(_) => println!("File compressed"),
+                Ok(_) => println!("File compressed!"), // TODO at result file path
                 Err(Error::File(e)) => {
                     eprintln!("File error: {e}");
                     std::process::exit(1);
                 }
             }
         }
-        Commands::Decompress { path } => { todo!() }
+        Commands::Decompress { path } => {
+            match decompress(&path) {
+                Ok(_) => println!("File decompressed!"), // TODO at result file path
+                Err(Error::File(e)) => {
+                    eprintln!("File error: {e}");
+                    std::process::exit(1);
+                }
+            }
+        }
         Commands::Info { path } => { todo!() }
     }
 }

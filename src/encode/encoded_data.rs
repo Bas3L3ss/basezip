@@ -1,10 +1,10 @@
 use crate::huffman::CodeTable;
 
-use super::metadata::Metadata;
+use super::Header;
 
 #[derive(Debug)]
 pub struct EncodedData {
-    pub metadata: Metadata,
+    pub header: Header,
     pub data: Vec<u8>,
 }
 
@@ -12,7 +12,7 @@ impl EncodedData {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut out = Vec::new();
 
-        out.extend(self.metadata.serialize());
+        out.extend(self.header.serialize());
 
         out.extend(self.data.clone());
 

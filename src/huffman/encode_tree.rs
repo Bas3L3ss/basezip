@@ -88,7 +88,7 @@ impl Node {
 
     /// Joins two nodes under a new internal node whose frequency is their sum.
     fn merge(left: Node, right: Node) -> Self {
-        let freq = left.freq.checked_add(right.freq).expect("frequency overflow");
+        let freq = left.freq.checked_add(right.freq).expect("frequency overflow"); // TODO: handle expect
         let kind = NodeKind::Internal {
             left: Box::new(left),
             right: Box::new(right),

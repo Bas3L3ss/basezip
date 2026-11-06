@@ -1,4 +1,4 @@
-use super::huffman_tree::Node;
+use super::encode_tree::Node;
 
 #[derive(Debug, Default)]
 pub struct MinHeap {

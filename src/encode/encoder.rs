@@ -1,4 +1,4 @@
-use crate::{ encode::Metadata, huffman::Node };
+use crate::{ encode::Header, huffman::Node };
 use super::EncodedData;
 
 pub struct Encoder;
@@ -11,8 +11,8 @@ impl Encoder {
 
         let data = EncodedData::encode_bytes(input, &code_table);
 
-        let metadata = Metadata::new(input.len() as u64, code_table);
+        let header = Header::new(input.len() as u64, code_table);
 
-        EncodedData { metadata, data }
+        EncodedData { header, data }
     }
 }

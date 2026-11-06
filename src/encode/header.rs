@@ -1,4 +1,4 @@
-use crate::{ decode::DecompressError, huffman_pointer::CodeTable };
+use crate::{ decode::DecompressError, huffman::CodeTable };
 
 const CODETABLE_LENGTH: usize = 256;
 const CODE_LENGTH_BYTES: usize = 1;

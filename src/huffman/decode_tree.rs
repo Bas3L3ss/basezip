@@ -1,18 +1,18 @@
-use crate::{ decode::DecompressError, huffman_pointer::CodeTable };
+use crate::{ decode::DecompressError, huffman::CodeTable };
 
 #[derive(Debug, PartialEq)]
-pub struct DecodeArena {
-    pub arena: Vec<ArenaDecodeNode>,
+pub struct DecodeTree {
+    pub arena: Vec<DecodeNode>,
     pub root: usize,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ArenaDecodeNode {
-    pub kind: ArenaDecodeNodeKind,
+pub struct DecodeNode {
+    pub kind: DecodeNodeKind,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum ArenaDecodeNodeKind {
+pub enum DecodeNodeKind {
     Leaf {
         symbol: u16,
     },
@@ -22,10 +22,10 @@ pub enum ArenaDecodeNodeKind {
     },
 }
 
-impl DecodeArena {
+impl DecodeTree {
     pub fn build_decode_tree(code_table: CodeTable) -> Result<Self, DecompressError> {
         let mut arena = vec![
-            ArenaDecodeNode::new(ArenaDecodeNodeKind::Internal {
+            DecodeNode::new(DecodeNodeKind::Internal {
                 left: None,
                 right: None,
             })
@@ -46,10 +46,10 @@ impl DecodeArena {
                 let bit = (code >> bit_index) & 1;
 
                 let child_index = match &arena[current].kind {
-                    ArenaDecodeNodeKind::Internal { left, right } => {
+                    DecodeNodeKind::Internal { left, right } => {
                         if bit == 0 { *left } else { *right }
                     }
-                    ArenaDecodeNodeKind::Leaf { .. } => {
+                    DecodeNodeKind::Leaf { .. } => {
                         return Err(DecompressError::UnexpectedLeaf);
                     }
                 };
@@ -60,13 +60,13 @@ impl DecodeArena {
                         let new_child = arena.len();
 
                         arena.push(
-                            ArenaDecodeNode::new(ArenaDecodeNodeKind::Internal {
+                            DecodeNode::new(DecodeNodeKind::Internal {
                                 left: None,
                                 right: None,
                             })
                         );
 
-                        let ArenaDecodeNodeKind::Internal { left, right } =
+                        let DecodeNodeKind::Internal { left, right } =
                             &mut arena[current].kind else {
                             return Err(DecompressError::UnexpectedLeaf);
                         };
@@ -80,11 +80,8 @@ impl DecodeArena {
             }
 
             match &arena[current].kind {
-                ArenaDecodeNodeKind::Internal { left, right } if
-                    left.is_none() &&
-                    right.is_none()
-                => {
-                    arena[current].kind = ArenaDecodeNodeKind::Leaf {
+                DecodeNodeKind::Internal { left, right } if left.is_none() && right.is_none() => {
+                    arena[current].kind = DecodeNodeKind::Leaf {
                         symbol: symbol as u16,
                     };
                 }
@@ -98,8 +95,8 @@ impl DecodeArena {
     }
 }
 
-impl ArenaDecodeNode {
-    pub fn new(kind: ArenaDecodeNodeKind) -> Self {
+impl DecodeNode {
+    pub fn new(kind: DecodeNodeKind) -> Self {
         Self { kind }
     }
 }

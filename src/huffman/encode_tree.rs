@@ -1,5 +1,3 @@
-use std::cmp::{ Reverse };
-
 use super::min_heap::MinHeap;
 
 impl PartialEq for Node {
@@ -115,25 +113,6 @@ impl Node {
     /// Default entry point. Point this at whichever implementation wins the benchmark.
     pub fn build(contents: &[u8]) -> Option<Self> {
         Self::build_with_heap(contents)
-    }
-
-    /// Builds the tree with a `Vec` kept sorted in descending order (smallest at the end).
-    pub fn build_with_vec(contents: &[u8]) -> Option<Self> {
-        let mut nodes = Self::leaves(contents);
-        if nodes.is_empty() {
-            return None;
-        }
-
-        nodes.sort_by_key(|n| Reverse(n.freq));
-
-        while nodes.len() > 1 {
-            let left = nodes.pop().expect("len > 1");
-            let right = nodes.pop().expect("len > 1");
-            nodes.push(Self::merge(left, right));
-            nodes.sort_by_key(|n| Reverse(n.freq));
-        }
-
-        Some(nodes.pop().expect("non-empty"))
     }
 
     /// Builds the tree with a min-heap keyed on frequency.

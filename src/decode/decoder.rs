@@ -1,8 +1,7 @@
-use super::DecompressError;
 use crate::{
+    decode::DecompressError,
     encode::{ HEADER_LENGTH, Header },
-    huffman_arena::{ ArenaDecodeNodeKind, DecodeArena },
-    huffman_pointer::{ PointerDecodeNode, PointerDecodeNodeKind },
+    huffman::{ DecodeNodeKind, DecodeTree },
 };
 
 pub struct Decoder;
@@ -36,61 +35,8 @@ impl Decoder {
         Ok((input_slice, header))
     }
 
-    pub fn with_pointer_tree(
-        input_slice: &[u8],
-        header: Header
-    ) -> Result<Vec<u8>, DecompressError> {
-        let tree = PointerDecodeNode::build_decode_tree(header.code_table)?;
-
-        let mut out: Vec<u8> = Vec::with_capacity(header.original_size as usize);
-        let mut current = &tree;
-
-        'bytes: for byte in input_slice {
-            for cur in (0..8).rev() {
-                let bit = (byte >> cur) & 1;
-
-                let child = match &current.kind {
-                    PointerDecodeNodeKind::Internal { left, right } => {
-                        if bit == 0 { left.as_deref() } else { right.as_deref() }
-                    }
-                    _ => {
-                        return Err(DecompressError::UnexpectedTraversal);
-                    }
-                };
-
-                let child = match child {
-                    Some(c) => c,
-                    None => {
-                        return Err(DecompressError::UnexpectedTraversal);
-                    }
-                };
-
-                match &child.kind {
-                    PointerDecodeNodeKind::Leaf { symbol } => {
-                        out.push(*symbol as u8);
-                        current = &tree;
-
-                        if (out.len() as u64) == header.original_size {
-                            break 'bytes;
-                        }
-                    }
-                    PointerDecodeNodeKind::Internal { .. } => {
-                        current = child;
-                    }
-                }
-            }
-        }
-        if (out.len() as u64) != header.original_size {
-            eprintln!(
-                "The decompression progress might have produced a different file due to difference in size..."
-            );
-        }
-
-        Ok(out)
-    }
-
     pub fn with_arena_tree(input_slice: &[u8], header: Header) -> Result<Vec<u8>, DecompressError> {
-        let tree = DecodeArena::build_decode_tree(header.code_table)?;
+        let tree = DecodeTree::build_decode_tree(header.code_table)?;
 
         let arena = tree.arena;
         let root = tree.root;
@@ -103,7 +49,7 @@ impl Decoder {
                 let bit = (byte >> cur) & 1;
 
                 let child = match &arena[current].kind {
-                    ArenaDecodeNodeKind::Internal { left, right } => {
+                    DecodeNodeKind::Internal { left, right } => {
                         if bit == 0 { left } else { right }
                     }
                     _ => {
@@ -119,7 +65,7 @@ impl Decoder {
                 };
 
                 match &arena[*child].kind {
-                    ArenaDecodeNodeKind::Leaf { symbol } => {
+                    DecodeNodeKind::Leaf { symbol } => {
                         out.push(*symbol as u8);
                         current = root;
 
@@ -127,7 +73,7 @@ impl Decoder {
                             break 'bytes;
                         }
                     }
-                    ArenaDecodeNodeKind::Internal { .. } => {
+                    DecodeNodeKind::Internal { .. } => {
                         current = *child;
                     }
                 }

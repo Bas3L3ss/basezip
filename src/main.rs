@@ -10,8 +10,12 @@ fn main() {
         Commands::List { path } => { todo!() }
         Commands::Compress { path } => {
             match compress(&path) {
-                Ok(_) => println!("File compressed!"), // TODO at result file path
+                Ok(_) => {}
                 Err(Error::File(e)) => {
+                    eprintln!("File error: {e}");
+                    std::process::exit(1);
+                }
+                Err(e) => {
                     eprintln!("File error: {e}");
                     std::process::exit(1);
                 }
@@ -19,8 +23,12 @@ fn main() {
         }
         Commands::Decompress { path } => {
             match decompress(&path) {
-                Ok(_) => println!("File decompressed!"), // TODO at result file path
+                Ok(_) => {}
                 Err(Error::File(e)) => {
+                    eprintln!("File error: {e}");
+                    std::process::exit(1);
+                }
+                Err(e) => {
                     eprintln!("File error: {e}");
                     std::process::exit(1);
                 }

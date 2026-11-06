@@ -1,4 +1,4 @@
-use crate::huffman::CodeTable;
+use crate::{ decode::DecompressError, huffman::CodeTable };
 
 const CODETABLE_LENGTH: usize = 256;
 const CODE_LENGTH_BYTES: usize = 1;
@@ -21,8 +21,6 @@ impl Header {
     pub fn serialize(&self) -> Vec<u8> {
         let mut out = Vec::with_capacity(HEADER_LENGTH);
 
-        dbg!(out.capacity());
-
         out.extend_from_slice(MAGIC_WORD);
         out.extend_from_slice(&self.original_size.to_le_bytes());
 
@@ -41,20 +39,25 @@ impl Header {
 
         out
     }
-    pub fn deserialize(bytes: &[u8]) -> Self {
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, DecompressError> {
         if bytes.len() < HEADER_LENGTH {
-            panic!("incomplete header"); // TODO: handle unwrap/panic
+            return Err(DecompressError::IncorrectHeaderLength);
         }
 
         let magic_word = &bytes[..MAGIC_WORD.len()];
 
         if magic_word != MAGIC_WORD {
-            panic!("invalid magic word"); // TODO: handle unwrap/panic
+            return Err(DecompressError::InvalidMagicWord);
         }
 
         let mut start = MAGIC_WORD.len();
 
-        let original_size = u64::from_le_bytes(bytes[start..start + 8].try_into().unwrap());
+        let original_size = u64::from_le_bytes(
+            bytes[start..start + 8]
+                .try_into()
+                .map_err(|_| DecompressError::FailedToParseNumber { type_num: "u8" })?
+        );
+
         start += 8;
 
         let mut code_table: CodeTable = std::array::from_fn(|_| None);
@@ -63,12 +66,16 @@ impl Header {
             let code_length = bytes[start];
 
             if code_length > 32 {
-                panic!("invalid Huffman code length"); // TODO: handle unwrap/panic
+                return Err(DecompressError::InvalidCodeLength);
             }
 
             start += 1;
 
-            let code = u32::from_le_bytes(bytes[start..start + 4].try_into().unwrap()); // TODO: handle unwrap/panic
+            let code = u32::from_le_bytes(
+                bytes[start..start + 4]
+                    .try_into()
+                    .map_err(|_| DecompressError::FailedToParseNumber { type_num: "u32" })?
+            );
             start += 4;
 
             if code_length != 0 {
@@ -76,9 +83,9 @@ impl Header {
             }
         }
 
-        Self {
+        Ok(Self {
             code_table,
             original_size,
-        }
+        })
     }
 }

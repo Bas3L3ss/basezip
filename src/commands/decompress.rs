@@ -7,11 +7,13 @@ use crate::{
 pub fn decompress(path: &str) -> Result<(), Error> {
     let file = open(path)?;
 
-    let original_contents = Decoder::decode(&file.contents);
+    let original_contents = Decoder::decode(&file.contents)?;
 
     let resolved_path = remove_bzip_extension(&path);
 
-    write(resolved_path, original_contents)?;
+    write(&resolved_path, original_contents)?;
+
+    println!("File decompressed successfully in: {resolved_path:?}");
 
     Ok(())
 }

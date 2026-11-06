@@ -1,4 +1,4 @@
-use crate::huffman::CodeTable;
+use crate::{ decode::DecompressError, huffman::CodeTable };
 
 #[derive(Debug, PartialEq)]
 pub struct DecodeNode {
@@ -17,8 +17,13 @@ pub enum DecodeNodeKind {
 }
 
 impl DecodeNode {
-    pub fn build_decode_tree(code_table: CodeTable) -> Self {
-        fn dfs(cur_node: &mut DecodeNode, code_byte: u32, symbol: u16, current: isize) {
+    pub fn build_decode_tree(code_table: CodeTable) -> Result<Self, DecompressError> {
+        fn dfs(
+            cur_node: &mut DecodeNode,
+            code_byte: u32,
+            symbol: u16,
+            current: isize
+        ) -> Result<(), DecompressError> {
             if current < 0 {
                 match &cur_node.kind {
                     DecodeNodeKind::Internal { left, right } if
@@ -26,16 +31,18 @@ impl DecodeNode {
                         right.is_none()
                     => {
                         cur_node.kind = DecodeNodeKind::Leaf { symbol };
-                        return;
+                        Ok(())
                     }
-                    _ => panic!("Invalid leaf"), // TODO: Panic
+                    _ => {
+                        return Err(DecompressError::UnexpectedLeaf);
+                    }
                 }
             } else {
                 let bit = ((code_byte >> current) & 1) as u8;
 
                 let (left, right) = match &mut cur_node.kind {
                     DecodeNodeKind::Leaf { .. } => {
-                        panic!("invalid tree"); // TODO: Panic
+                        return Err(DecompressError::UnexpectedLeaf);
                     }
                     DecodeNodeKind::Internal { left, right } => (left, right),
                 };
@@ -53,17 +60,22 @@ impl DecodeNode {
                     );
                 }
 
-                dfs(child.as_mut().unwrap(), code_byte, symbol, current - 1) // TODO: Handle unwrap
+                dfs(
+                    child.as_mut().expect("Unreachable as child is created above"),
+                    code_byte,
+                    symbol,
+                    current - 1
+                )
             }
         }
 
         let mut root = Self::new(DecodeNodeKind::Internal { left: None, right: None });
         for (symbol, entry) in code_table.iter().enumerate() {
             if let Some(entry) = entry {
-                dfs(&mut root, entry.0, symbol as u16, (entry.1 - 1) as isize);
+                dfs(&mut root, entry.0, symbol as u16, (entry.1 - 1) as isize)?;
             }
         }
-        root
+        Ok(root)
     }
 
     pub fn new(kind: DecodeNodeKind) -> Self {

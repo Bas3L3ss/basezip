@@ -1,18 +1,28 @@
+use super::DecompressError;
 use crate::{ encode::{ HEADER_LENGTH, Header }, huffman::{ DecodeNode, DecodeNodeKind } };
 
 pub struct Decoder;
 
 impl Decoder {
-    pub fn decode(input: &[u8]) -> String {
+    pub fn decode(input: &[u8]) -> Result<String, DecompressError> {
+        if input.len() < HEADER_LENGTH {
+            return Err(DecompressError::IncorrectHeaderLength);
+        }
+
         let header_slice = &input[0..HEADER_LENGTH];
         let input_slice = &input[HEADER_LENGTH..];
 
+        if input_slice.len() == 0 {
+            eprintln!("File is empty, there's nothing to decompress");
+            return Ok(String::new());
+        }
+
         // parse header
-        let header = Header::deserialize(header_slice);
+        let header = Header::deserialize(header_slice)?;
 
         // build huffman decode tree
 
-        let tree = DecodeNode::build_decode_tree(header.code_table);
+        let tree = DecodeNode::build_decode_tree(header.code_table)?;
 
         // decode input
 
@@ -28,10 +38,17 @@ impl Decoder {
                     DecodeNodeKind::Internal { left, right } => {
                         if bit == 0 { left.as_deref() } else { right.as_deref() }
                     }
-                    _ => { panic!("Unexpected travesal") } // TODO: handle panic
+                    _ => {
+                        return Err(DecompressError::UnexpectedTraversal);
+                    }
                 };
 
-                let child = child.unwrap(); // TODO: handle panic
+                let child = match child {
+                    Some(c) => c,
+                    None => {
+                        return Err(DecompressError::UnexpectedTraversal);
+                    }
+                };
 
                 match &child.kind {
                     DecodeNodeKind::Leaf { symbol } => {
@@ -49,9 +66,16 @@ impl Decoder {
             }
         }
         if (out.len() as u64) != header.original_size {
-            panic!("Odd compression.."); // TODO: handle panic
+            eprintln!(
+                "The decompression progress might have produced a different file due to difference in size..."
+            );
         }
 
-        std::str::from_utf8(&out).unwrap().to_string() // TODO: Handle panic
+        Ok(
+            std::str
+                ::from_utf8(&out)
+                .map_err(|_| DecompressError::FailedToParseString)?
+                .to_string()
+        )
     }
 }

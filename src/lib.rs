@@ -1,3 +1,4 @@
+pub mod Lz77;
 pub mod cli;
 pub mod commands;
 pub mod file;

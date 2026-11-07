@@ -16,7 +16,7 @@ fn main() {
                     std::process::exit(1);
                 }
                 Err(e) => {
-                    eprintln!("File error: {e}");
+                    eprintln!("Compress error: {e}");
                     std::process::exit(1);
                 }
             }
@@ -29,7 +29,7 @@ fn main() {
                     std::process::exit(1);
                 }
                 Err(e) => {
-                    eprintln!("File error: {e}");
+                    eprintln!("Decompress error: {e}");
                     std::process::exit(1);
                 }
             }

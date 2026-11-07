@@ -26,11 +26,11 @@ The long-term objective is to create a utility capable of compressing individual
 
 **Goal:** Understand how compressed data is represented and manipulated at the byte and bit levels.
 
-- [ ] Implement binary file reading and writing.
-- [ ] Understand bytes, bits, bit ordering, and endianness.
-- [ ] Implement a bit reader and bit writer.
-- [ ] Handle EOF, buffering, and I/O errors.
-- [ ] Design basic round-trip tests.
+- [x] Implement binary file reading and writing.
+- [x] Understand bytes, bits, bit ordering, and endianness.
+- [x] Implement a bit reader and bit writer.
+- [x] Handle EOF, buffering, and I/O errors.
+- [x] Design basic round-trip tests.
 
 ### Phase 2 — Fundamental Compression Algorithms
 
@@ -38,17 +38,17 @@ The long-term objective is to create a utility capable of compressing individual
 
 **Run-Length Encoding (RLE)**
 
-- [ ] Implement RLE encoding.
-- [ ] Implement RLE decoding.
-- [ ] Handle edge cases and expansion scenarios.
+- [x] Implement RLE encoding.
+- [x] Implement RLE decoding.
+- [x] Handle edge cases and expansion scenarios.
 
 **Huffman Coding**
 
-- [ ] Build a frequency table.
-- [ ] Construct a Huffman binary tree.
-- [ ] Generate variable-length prefix codes.
-- [ ] Implement bit-level encoding and decoding.
-- [ ] Store and reconstruct the Huffman tree or code lengths.
+- [x] Build a frequency table.
+- [x] Construct a Huffman binary tree.
+- [x] Generate variable-length prefix codes.
+- [x] Implement bit-level encoding and decoding.
+- [x] Store and reconstruct the Huffman tree or code lengths.
 
 ### Phase 3 — Dictionary-Based Compression
 

@@ -20,4 +20,14 @@ impl Window {
 
         self.inner.push_back(byte);
     }
+
+    pub fn find_longest_match(&self, input: &[u8]) -> Option<(u16, u16)> {
+        None
+    }
+
+    pub fn extend(&mut self, input: &[u8]) {
+        for &byte in input {
+            self.push(byte);
+        }
+    }
 }

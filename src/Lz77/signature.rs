@@ -20,3 +20,13 @@ impl Debug for Signature {
         write!(f, "{:0width$b}", self.bits, width = self.length as usize)
     }
 }
+
+impl Signature {
+    pub fn check(byte: u8) -> Option<Self> {
+        match byte {
+            0b0 => { Some(LITERAL_SIGNATURE) }
+            0b10 => { Some(MATCH_SIGNATURE) }
+            _ => { None }
+        }
+    }
+}

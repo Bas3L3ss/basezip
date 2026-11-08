@@ -28,41 +28,35 @@ impl Window {
             return None;
         }
 
-        let mut matches: Vec<usize> = Vec::new();
-
-        for idx in 0..self.inner.len() {
-            if self.inner[idx] == input[0] {
-                matches.push(idx);
-            }
-        }
-
-        if matches.is_empty() {
-            return None;
-        }
-
         let mut distance: u16 = 0;
         let mut length: u16 = 0;
 
-        while let Some(starting_point) = matches.pop() {
-            let mut current_length: u16 = 0;
-            let new_distance: u16 = (self.inner.len() - starting_point) as u16;
-            loop {
-                if (current_length as usize) < input.len() && current_length < MAX_LENGTH {
-                    let source_idx =
-                        starting_point + ((current_length as usize) % (new_distance as usize));
-                    if input[current_length as usize] == self.inner[source_idx] {
-                        current_length += 1;
+        for idx in (0..self.inner.len()).rev() {
+            if self.inner[idx] == input[0] {
+                let mut current_length: u16 = 0;
+                let new_distance: u16 = (self.inner.len() - idx) as u16;
+                loop {
+                    if (current_length as usize) < input.len() && current_length < MAX_LENGTH {
+                        let source_idx =
+                            idx + ((current_length as usize) % (new_distance as usize));
+                        if input[current_length as usize] == self.inner[source_idx] {
+                            current_length += 1;
+                        } else {
+                            break;
+                        }
                     } else {
                         break;
                     }
-                } else {
-                    break;
                 }
-            }
 
-            if current_length > length {
-                distance = (self.inner.len() - starting_point) as u16;
-                length = current_length;
+                if current_length > length {
+                    distance = (self.inner.len() - idx) as u16;
+                    length = current_length;
+
+                    if current_length == MAX_LENGTH {
+                        return Some((distance, length));
+                    }
+                }
             }
         }
 

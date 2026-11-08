@@ -15,6 +15,7 @@ pub fn open(path: impl AsRef<Path>) -> Result<File, FileError> {
 
     Ok(File {
         path: path.display().to_string(),
+        size: contents.len() as u64,
         contents,
     })
 }

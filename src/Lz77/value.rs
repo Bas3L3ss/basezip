@@ -23,7 +23,7 @@ impl Value {
     pub fn to_bytes(&self, output: &mut Vec<u8>) {
         match *self {
             Value::Literal(symbol) => {
-                output.push(LITERAL_SIGNATURE.bits);
+                output.push(LITERAL_SIGNATURE.bits); // TODO: IMPLEMENT BITWRITER TO WRITE IN THE EXACT BITS
                 output.push(symbol);
             }
 

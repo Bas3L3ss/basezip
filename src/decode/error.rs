@@ -10,4 +10,5 @@ pub enum DecompressError {
     },
     #[error("Reached an invalid state of the tree")] UnexpectedLeaf,
     #[error("Reached an invalid state while traversing")] UnexpectedTraversal,
+    #[error("Reached an invalid state while decoding LZ77 signature")] UnexpectedValueSignature,
 }

@@ -9,9 +9,9 @@ pub struct LZ77;
 
 impl LZ77 {
     pub fn encode(contents: &[u8]) -> Vec<u8> {
-        let values: Vec<Value> = Self::compress(contents);
+        let values: Vec<Value> = Self::compress(contents); // TODO: Implement direct values encoding
 
-        let mut out: Vec<u8> = Vec::with_capacity(values.len() / 2);
+        let mut out: Vec<u8> = Vec::new();
 
         for value in values {
             value.to_bytes(&mut out);

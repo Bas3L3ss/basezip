@@ -4,18 +4,20 @@ const CODETABLE_LENGTH: usize = 256;
 const CODE_LENGTH_BYTES: usize = 1;
 const CODE_BYTES: usize = 4;
 const MAGIC_WORD: &[u8; 7] = b"BASEZIP";
+const U64_SIZE: usize = 8;
 pub const HEADER_LENGTH: usize =
-    MAGIC_WORD.len() + 8 + CODETABLE_LENGTH * (CODE_LENGTH_BYTES + CODE_BYTES);
+    MAGIC_WORD.len() + U64_SIZE * 2 + CODETABLE_LENGTH * (CODE_LENGTH_BYTES + CODE_BYTES);
 
 #[derive(Debug, Clone, Copy)]
 pub struct Header {
     pub original_size: u64,
+    pub lz77_size: u64,
     pub code_table: CodeTable,
 }
 
 impl Header {
-    pub fn new(original_size: u64, code_table: CodeTable) -> Self {
-        Self { original_size, code_table }
+    pub fn new(lz77_size: u64, original_size: u64, code_table: CodeTable) -> Self {
+        Self { original_size, lz77_size, code_table }
     }
 
     pub fn serialize(&self) -> Vec<u8> {
@@ -23,6 +25,8 @@ impl Header {
 
         out.extend_from_slice(MAGIC_WORD);
         out.extend_from_slice(&self.original_size.to_le_bytes());
+
+        out.extend_from_slice(&self.lz77_size.to_le_bytes());
 
         for entry in &self.code_table {
             match entry {
@@ -55,7 +59,14 @@ impl Header {
         let original_size = u64::from_le_bytes(
             bytes[start..start + 8]
                 .try_into()
-                .map_err(|_| DecompressError::FailedToParseNumber { type_num: "u8" })?
+                .map_err(|_| DecompressError::FailedToParseNumber { type_num: "u64" })?
+        );
+        start += 8;
+
+        let lz77_size = u64::from_le_bytes(
+            bytes[start..start + 8]
+                .try_into()
+                .map_err(|_| DecompressError::FailedToParseNumber { type_num: "u64" })?
         );
 
         start += 8;
@@ -86,6 +97,7 @@ impl Header {
         Ok(Self {
             code_table,
             original_size,
+            lz77_size,
         })
     }
 }

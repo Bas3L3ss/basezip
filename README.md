@@ -56,11 +56,12 @@ The long-term objective is to create a utility capable of compressing individual
 
 **LZ77**
 
-- [ ] Understand sliding windows and backward references.
+- [x] Understand sliding windows and backward references.
 - [ ] Implement a basic LZ77 encoder.
 - [ ] Implement an LZ77 decoder.
-- [ ] Handle overlapping matches.
-- [ ] Experiment with window sizes and match-finding strategies.
+- [x] Handle overlapping matches.
+- [x] Experiment with window sizes and match-finding strategies.
+- [ ] Add Bitwriter and BitReader to write/read the exact binary length
 
 ### Phase 4 — DEFLATE
 

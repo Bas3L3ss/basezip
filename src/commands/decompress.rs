@@ -13,7 +13,7 @@ pub fn decompress(path: &str) -> Result<(), Error> {
 
     write(&resolved_path, original_contents)?;
 
-    println!("File decompressed successfully in: {resolved_path:?}");
+    println!("The decompressed filed is stored in: {resolved_path:?}");
 
     Ok(())
 }

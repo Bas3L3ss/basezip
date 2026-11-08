@@ -11,6 +11,8 @@ impl LZ77 {
     pub fn encode(contents: &[u8]) -> Vec<u8> {
         let values: Vec<Value> = Self::compress(contents); // TODO: Implement direct values encoding
 
+        dbg!(&values);
+
         let mut out: Vec<u8> = Vec::new();
 
         for value in values {
@@ -28,13 +30,13 @@ impl LZ77 {
         while pos < input.len() {
             let remaining = &input[pos..];
 
-            if let Some((distance, length)) = window.find_longest_match(remaining) {
+            if let Some((distance, length)) = window.find_longest_match(input, remaining, pos) {
                 // Emit match
                 let val: Value = Value::match_value(distance, length);
                 out.push(val);
 
                 // Add matched input bytes to history
-                window.extend(&input[pos..pos + (length as usize)]);
+                window.extend(&input[pos..pos + (length as usize)], pos);
 
                 // Advance by match length
                 pos += length as usize;
@@ -44,7 +46,7 @@ impl LZ77 {
                 out.push(val);
 
                 // Add current byte to history
-                window.push(input[pos]);
+                window.push(input[pos], pos);
 
                 // Advance by one
                 pos += 1;

@@ -1,13 +1,23 @@
 pub mod value;
 pub mod window;
+pub mod signature;
 pub use value::*;
+pub use signature::*;
 pub use window::*;
 
 pub struct LZ77;
 
 impl LZ77 {
     pub fn encode(contents: &[u8]) -> Vec<u8> {
-        todo!()
+        let values: Vec<Value> = Self::compress(contents);
+
+        let mut out: Vec<u8> = Vec::with_capacity(values.len() / 2);
+
+        for value in values {
+            value.to_bytes(&mut out);
+        }
+
+        out
     }
 
     pub fn compress(input: &[u8]) -> Vec<Value> {

@@ -1,5 +1,4 @@
 use std::hint::black_box;
-use basezip::{ huffman::Node };
 use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion };
 
 fn generate_uniform(size: usize) -> Vec<u8> {
@@ -36,14 +35,10 @@ fn generate_random_like(size: usize) -> Vec<u8> {
     data
 }
 
-fn benchmark_huffman(c: &mut Criterion) {
-    let mut group = c.benchmark_group("huffman_tree");
+fn benchmark_window(c: &mut Criterion) {
+    let mut group = c.benchmark_group("lz77_window_comparison");
 
-    let sizes = [
-        1024 * 1024, // 1 MiB
-        4 * 1024 * 1024, // 4 MiB
-        16 * 1024 * 1024, // 16 MiB
-    ];
+    let sizes = [1024 * 1024, 4 * 1024 * 1024, 16 * 1024 * 1024];
 
     for size in sizes {
         let datasets = [
@@ -51,28 +46,10 @@ fn benchmark_huffman(c: &mut Criterion) {
             ("skewed", generate_skewed(size)),
             ("random_like", generate_random_like(size)),
         ];
-
-        for (distribution, data) in datasets {
-            // group.bench_with_input(
-            //     BenchmarkId::new("vec", format!("{distribution}_{size}")),
-            //     &data,
-            //     |b, data| {
-            //         b.iter(|| { Node::build_with_vec(black_box(data.as_slice())) });
-            //     }
-            // );
-
-            group.bench_with_input(
-                BenchmarkId::new("heap", format!("{distribution}_{size}")),
-                &data,
-                |b, data| {
-                    b.iter(|| { Node::build_with_heap(black_box(data.as_slice())) });
-                }
-            );
-        }
     }
 
     group.finish();
 }
 
-criterion_group!(benches, benchmark_huffman);
+criterion_group!(benches, benchmark_window);
 criterion_main!(benches);

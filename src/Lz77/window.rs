@@ -1,91 +1,81 @@
-use std::{ collections::{ HashMap, VecDeque } };
+use std::{ collections::VecDeque };
 
-use crate::Lz77::{ MAX_LENGTH, MIN_LENGTH };
+use crate::Lz77::{ MAX_LENGTH, MIN_LENGTH, tool::hash };
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-enum HashKey {
-    Byte(u8),
-    Triple(u32),
+pub const MAX_CHAIN_DEPTH: usize = 64;
+const TRIPLE_HASH_SIZE: usize = 1 << 24;
+
+#[derive(Debug, Clone, Copy)]
+struct ChainEntry {
+    position: usize,
+    length: usize,
 }
 
 #[derive(Debug)]
 pub struct Window {
     capacity: usize,
-    pub history: VecDeque<u8>,
-    hashes_map: HashMap<HashKey, VecDeque<usize>>,
-    hashes_vec: VecDeque<HashKey>,
+    history: VecDeque<u8>,
+    triple_head: Vec<Option<ChainEntry>>,
+    triple_prev: Vec<Option<usize>>,
 }
 
 impl Window {
     pub fn new(capacity: usize) -> Self {
         if capacity >= (MIN_LENGTH as usize) {
             Self {
-                history: VecDeque::with_capacity(capacity),
-                hashes_map: HashMap::new(),
-                hashes_vec: VecDeque::with_capacity(capacity.saturating_sub(2)),
                 capacity,
+                history: VecDeque::with_capacity(capacity),
+                triple_head: vec![None; TRIPLE_HASH_SIZE],
+                triple_prev: vec![None; capacity],
             }
         } else {
             panic!()
         }
     }
 
-    fn hash(bytes: &[u8]) -> HashKey {
-        match bytes.len() {
-            1 => HashKey::Byte(bytes[0]),
-            3 => {
-                HashKey::Triple(
-                    ((bytes[0] as u32) << 16) | ((bytes[1] as u32) << 8) | (bytes[2] as u32)
-                )
-            }
-            _ => unreachable!(), // TODO: Return error
-        }
-    }
-
-    fn evict_oldest(&mut self) {
-        let oldest_byte_hash = self.history.pop_front().unwrap();
-        self.evict_hash(&HashKey::Byte(oldest_byte_hash));
-
-        let oldest_hash = self.hashes_vec.pop_front().unwrap();
-        self.evict_hash(&oldest_hash);
-    }
-
-    fn evict_hash(&mut self, hash: &HashKey) {
-        let positions = self.hashes_map.get_mut(hash).unwrap(); // TODO: Handle unwrap
-        positions.pop_front();
-
-        if positions.is_empty() {
-            self.hashes_map.remove(hash);
-        }
-    }
-
-    fn insert_byte_hash(&mut self, byte: u8, position: usize) {
-        let hash = Self::hash(&[byte]);
-        self.hashes_map.entry(hash).or_default().push_back(position);
-    }
-
-    fn insert_hash(&mut self, origin_position: usize, offset: usize) {
-        let start = self.history.len() - offset;
-
-        let hash = Self::hash(
-            &[self.history[start], self.history[start + 1], self.history[start + 2]]
-        );
-        self.hashes_vec.push_back(hash);
-        self.hashes_map.entry(hash).or_default().push_back(origin_position);
-    }
-
     pub fn push(&mut self, byte: u8, origin_position: usize) {
         if self.history.len() == self.capacity {
-            self.evict_oldest();
+            let oldest_triple_hash = hash(
+                &[self.history[0], self.history[1], self.history[2]]
+            ) as usize;
+
+            let head = self.triple_head[oldest_triple_hash].as_mut().unwrap();
+            head.length -= 1;
+
+            if head.length == 0 {
+                self.triple_head[oldest_triple_hash] = None;
+            }
+            self.history.pop_front();
         }
 
         self.history.push_back(byte);
 
-        self.insert_byte_hash(byte, origin_position);
-
         if self.history.len() >= (MIN_LENGTH as usize) {
             let absolute_position = origin_position - ((MIN_LENGTH as usize) - 1);
-            self.insert_hash(absolute_position, MIN_LENGTH as usize);
+
+            let start_of_last = self.history.len() - (MIN_LENGTH as usize);
+
+            let hash = hash(
+                &[
+                    self.history[start_of_last],
+                    self.history[start_of_last + 1],
+                    self.history[start_of_last + 2],
+                ]
+            ) as usize;
+
+            let mut length = 1;
+            let prev_absolute_position = match self.triple_head[hash] {
+                None => { None }
+                Some(p) => {
+                    length += p.length;
+                    Some(p.position)
+                }
+            };
+
+            let relative_position = absolute_position % self.capacity;
+
+            self.triple_prev[relative_position] = prev_absolute_position;
+            self.triple_head[hash] = Some(ChainEntry { position: absolute_position, length });
         }
     }
 
@@ -93,7 +83,8 @@ impl Window {
         &self,
         original: &[u8],
         remainings: &[u8],
-        remaining_absolute_start: usize
+        remaining_absolute_start: usize,
+        max_chain_depth: usize
     ) -> Option<(u16, u16)> {
         if remainings.len() < (MIN_LENGTH as usize) {
             return None;
@@ -101,22 +92,20 @@ impl Window {
 
         let mut distance: u16 = 0;
         let mut length: u16 = 0;
-        let max_length = remainings.len().min(MAX_LENGTH as usize);
+        let max_length: u16 = remainings.len().min(MAX_LENGTH.into()) as u16;
 
-        let mut is_matched_bytes = false;
-        if
-            let Some(candidates) = self.hashes_map.get(
-                &Self::hash(&remainings[0..MIN_LENGTH as usize])
-            )
-        {
-            for candidate in candidates.iter().rev() {
+        if let Some(head) = self.triple_head[hash(&remainings[0..MIN_LENGTH as usize]) as usize] {
+            let mut step = 0;
+            let mut cur = head.position;
+
+            loop {
                 let mut current_length: u16 = MIN_LENGTH;
-                let new_distance: u16 = (remaining_absolute_start - candidate) as u16;
+                let new_distance: u16 = (remaining_absolute_start - cur) as u16;
 
                 loop {
-                    if (current_length as usize) < max_length {
+                    if current_length < max_length {
                         let source_idx =
-                            candidate + ((current_length as usize) % (new_distance as usize));
+                            cur + ((current_length as usize) % (new_distance as usize));
 
                         if remainings[current_length as usize] == original[source_idx] {
                             current_length += 1;
@@ -129,45 +118,20 @@ impl Window {
                 }
 
                 if current_length > length {
-                    is_matched_bytes = true;
                     distance = new_distance;
                     length = current_length;
 
-                    if (current_length as usize) == max_length {
+                    if current_length == max_length {
                         return Some((distance, length));
                     }
                 }
-            }
-        }
-        if !is_matched_bytes {
-            if let Some(candidates) = self.hashes_map.get(&Self::hash(&remainings[0..1])) {
-                for candidate in candidates.iter().rev() {
-                    let mut current_length: u16 = 0;
-                    let new_distance: u16 = (remaining_absolute_start - candidate) as u16;
 
-                    loop {
-                        if (current_length as usize) >= max_length {
-                            break;
-                        }
+                step += 1;
 
-                        let source_idx =
-                            candidate + ((current_length as usize) % (new_distance as usize));
-
-                        if remainings[current_length as usize] != original[source_idx] {
-                            break;
-                        }
-
-                        current_length += 1;
-                    }
-
-                    if current_length > length {
-                        distance = new_distance;
-                        length = current_length;
-
-                        if (current_length as usize) == max_length {
-                            return Some((distance, length));
-                        }
-                    }
+                if step < head.length && step < max_chain_depth {
+                    cur = self.triple_prev[cur % self.capacity].expect("Invalid traversal");
+                } else {
+                    break;
                 }
             }
         }

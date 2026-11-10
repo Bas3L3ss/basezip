@@ -1,4 +1,4 @@
-use crate::{ Lz77::LZ77, commands::error::Error, encode::Encoder, file::{ open, write } };
+use crate::{ lz77::LZ77, commands::error::Error, encode::Encoder, file::{ open, write } };
 
 pub fn compress(path: &str) -> Result<(), Error> {
     let file = open(path)?;

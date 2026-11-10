@@ -1,5 +1,5 @@
 use crate::{
-    Lz77::{ Signature },
+    lz77::{ Signature },
     decode::DecompressError,
     encode::{ HEADER_LENGTH, Header },
     huffman::{ DecodeNodeKind, DecodeTree },

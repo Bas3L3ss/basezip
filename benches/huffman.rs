@@ -2,7 +2,7 @@ use std::{ hint::black_box, time::Duration };
 
 use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion };
 
-use basezip::Lz77::LZ77; // Adjust to your crate's actual module path.
+use basezip::lz77::LZ77; // Adjust to your crate's actual module path.
 
 fn generate_uniform(size: usize) -> Vec<u8> {
     (0..size).map(|i| (i % 256) as u8).collect()

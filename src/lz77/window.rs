@@ -1,6 +1,6 @@
 use std::{ collections::VecDeque };
 
-use crate::Lz77::{ MAX_LENGTH, MIN_LENGTH, tool::hash };
+use crate::lz77::{ MAX_LENGTH, MIN_LENGTH, tool::hash };
 
 pub const MAX_CHAIN_DEPTH: usize = 64;
 const TRIPLE_HASH_SIZE: usize = 1 << 24;

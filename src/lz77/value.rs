@@ -1,4 +1,4 @@
-use crate::Lz77::{ LITERAL_SIGNATURE, MATCH_SIGNATURE };
+use crate::lz77::{ LITERAL_SIGNATURE, MATCH_SIGNATURE };
 
 pub const MAX_LENGTH: u16 = 258;
 pub const MIN_LENGTH: u16 = 3;

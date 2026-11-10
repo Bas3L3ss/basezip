@@ -1,5 +1,8 @@
-use std::hint::black_box;
+use std::{ hint::black_box, time::Duration };
+
 use criterion::{ criterion_group, criterion_main, BenchmarkId, Criterion };
+
+use basezip::Lz77::LZ77; // Adjust to your crate's actual module path.
 
 fn generate_uniform(size: usize) -> Vec<u8> {
     (0..size).map(|i| (i % 256) as u8).collect()
@@ -27,7 +30,6 @@ fn generate_random_like(size: usize) -> Vec<u8> {
     let mut data = Vec::with_capacity(size);
 
     for _ in 0..size {
-        // Deterministic pseudo-random number generator.
         state = state.wrapping_mul(1664525).wrapping_add(1013904223);
         data.push((state >> 24) as u8);
     }
@@ -35,8 +37,13 @@ fn generate_random_like(size: usize) -> Vec<u8> {
     data
 }
 
-fn benchmark_window(c: &mut Criterion) {
-    let mut group = c.benchmark_group("lz77_window_comparison");
+fn benchmark_encode(c: &mut Criterion) {
+    let mut group = c.benchmark_group("lz77_encode");
+
+    group
+        .sample_size(20)
+        .warm_up_time(Duration::from_secs(3))
+        .measurement_time(Duration::from_secs(10));
 
     let sizes = [1024 * 1024, 4 * 1024 * 1024, 16 * 1024 * 1024];
 
@@ -46,10 +53,16 @@ fn benchmark_window(c: &mut Criterion) {
             ("skewed", generate_skewed(size)),
             ("random_like", generate_random_like(size)),
         ];
+
+        for (distribution, data) in datasets {
+            group.bench_with_input(BenchmarkId::new(distribution, size), &data, |b, data| {
+                b.iter(|| { black_box(LZ77::encode(black_box(data.as_slice()))) });
+            });
+        }
     }
 
     group.finish();
 }
 
-criterion_group!(benches, benchmark_window);
+criterion_group!(benches, benchmark_encode);
 criterion_main!(benches);

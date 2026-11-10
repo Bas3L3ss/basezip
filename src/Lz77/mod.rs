@@ -13,8 +13,6 @@ impl LZ77 {
         let mut out = Vec::new();
         let mut window = Window::new(WINDOW_CONTEXT as usize);
 
-        let start = std::time::Instant::now();
-
         let mut pos = 0;
 
         while pos < input.len() {
@@ -49,8 +47,6 @@ impl LZ77 {
                 pos += 1;
             }
         }
-
-        println!("Elapsed: {:?}", start.elapsed());
 
         out
     }
